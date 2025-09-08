@@ -1,0 +1,25 @@
+{
+  "zones": [
+    {
+      "name": "Parcelle A",
+      "center": { "lat": 34.1234, "lon": -6.7890 },
+      "area_hectares": 2.5,
+      "homogeneity": "homogeneous",
+      "crop_type": "wheat"
+    },
+    {
+      "name": "Parcelle B",
+      "center": { "lat": 34.1250, "lon": -6.7810 },
+      "area_hectares": 1.2,
+      "homogeneity": "heterogeneous"
+    },
+    {
+      "name": "Parcelle C",
+      "center": { "lat": 34.1300, "lon": -6.7700 },
+      "area_hectares": 3.0,
+      "homogeneity": "homogeneous",
+      "crop_type": "corn"
+    }
+  ]
+}
+

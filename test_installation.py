@@ -55,35 +55,35 @@ def test_modules():
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
     
     try:
-        from src.data_handler import DataHandler, get_default_clients_data
+        from data_handler import DataHandler, get_default_clients_data
         print("   ✓ data_handler")
     except Exception as e:
         print(f"   ❌ data_handler: {e}")
         return False
     
     try:
-        from src.optimizer import VRPOptimizer
+        from optimizer import VRPOptimizer
         print("   ✓ optimizer")
     except Exception as e:
         print(f"   ❌ optimizer: {e}")
         return False
     
     try:
-        from src.visualizer import VRPVisualizer
+        from visualizer import VRPVisualizer
         print("   ✓ visualizer")
     except Exception as e:
         print(f"   ❌ visualizer: {e}")
         return False
     
     try:
-        from src.analyzer import VRPAnalyzer
+        from analyzer import VRPAnalyzer
         print("   ✓ analyzer")
     except Exception as e:
         print(f"   ❌ analyzer: {e}")
         return False
     
     try:
-        from src.api_server import app
+        from api_server import app
         print("   ✓ api_server")
     except Exception as e:
         print(f"   ❌ api_server: {e}")
@@ -98,8 +98,8 @@ def test_optimization():
     
     try:
         sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
-        from src.data_handler import DataHandler, get_default_clients_data
-        from src.optimizer import VRPOptimizer
+        from data_handler import DataHandler, get_default_clients_data
+        from optimizer import VRPOptimizer
         
         # Configuration minimale
         config = {

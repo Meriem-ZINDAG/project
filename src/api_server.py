@@ -21,7 +21,11 @@ CORS(app)  # Activer CORS pour les requêtes cross-origin
 
 # Dossier de sortie pour les résultats
 OUTPUT_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'output')
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+
+def ensure_output_dir():
+    """Crée le dossier de sortie s'il n'existe pas."""
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
 @app.route('/', methods=['GET'])
@@ -69,6 +73,7 @@ def optimize():
     Returns:
         JSON avec la solution et l'ID des résultats
     """
+    ensure_output_dir()
     try:
         # Récupérer les données de la requête
         data = request.get_json()
@@ -313,6 +318,8 @@ def run_server(host='0.0.0.0', port=5000, debug=True):
         port: Port d'écoute
         debug: Mode debug
     """
+    ensure_output_dir()
+    
     print("=" * 80)
     print("🚀 DÉMARRAGE DU SERVEUR API VRP")
     print("=" * 80)

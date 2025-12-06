@@ -158,8 +158,9 @@ class VRPOptimizer:
         # Ajouter les pénalités de priorité (clients haute priorité favorisés)
         # Pénalité très élevée pour forcer la visite de tous les clients
         # mais avec un biais en faveur des clients haute priorité
+        PENALTY_MULTIPLIER = 1000  # Constante pour les pénalités de base
         max_distance = int(np.max(data['distance_matrix']))
-        base_penalty = max_distance * 1000  # Très élevé pour éviter de dropper des clients
+        base_penalty = max_distance * PENALTY_MULTIPLIER  # Très élevé pour éviter de dropper des clients
         
         for node in range(len(data['priorities'])):
             if node == data['depot']:

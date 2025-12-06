@@ -96,7 +96,7 @@ class VRPAnalyzer:
             return 100.0
         
         mean_load = np.mean(loads)
-        if mean_load == 0:
+        if mean_load < 1e-10:  # Epsilon comparison for floating point
             return 100.0
         
         std_load = np.std(loads)
@@ -120,7 +120,7 @@ class VRPAnalyzer:
             return 100.0
         
         mean_distance = np.mean(distances)
-        if mean_distance == 0:
+        if mean_distance < 1e-10:  # Epsilon comparison for floating point
             return 100.0
         
         std_distance = np.std(distances)

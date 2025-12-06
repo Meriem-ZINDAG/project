@@ -9,11 +9,11 @@ import os
 # Ajouter le dossier src au path pour les imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
-from src.data_handler import DataHandler, get_default_clients_data
-from src.user_interface import UserInterface
-from src.optimizer import VRPOptimizer
-from src.visualizer import VRPVisualizer
-from src.analyzer import VRPAnalyzer
+from data_handler import DataHandler, get_default_clients_data
+from user_interface import UserInterface
+from optimizer import VRPOptimizer
+from visualizer import VRPVisualizer
+from analyzer import VRPAnalyzer
 
 
 def main(interactive=True):
@@ -163,7 +163,7 @@ def display_help():
 
 def start_api_server():
     """Démarre le serveur API Flask."""
-    from src.api_server import run_server
+    from api_server import run_server
     run_server(host='0.0.0.0', port=5000, debug=True)
 
 

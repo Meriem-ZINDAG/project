@@ -1,0 +1,322 @@
+{
+  "name": "VRP Optimization Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 6 * * *"
+            }
+          ]
+        }
+      },
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Configuration par défaut pour l'optimisation VRP\nconst config = {\n  num_vehicles: 3,\n  vehicle_capacity: 50,\n  weight_distance: 1.0,\n  weight_priority: 0.5,\n  weight_time: 0.3,\n  time_limit: 30\n};\n\n// Préparer le payload pour l'API\nconst payload = {\n  config: config\n};\n\nreturn {\n  json: payload\n};"
+      },
+      "name": "Préparer Configuration",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5000/optimize",
+        "options": {
+          "timeout": 60000
+        },
+        "bodyParametersJson": "={{ JSON.stringify($json) }}",
+        "headerParametersJson": "{\n  \"Content-Type\": \"application/json\"\n}"
+      },
+      "name": "Appel API Optimisation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const response = $input.first().json;\n\n// Extraire les informations clés\nconst metrics = {\n  result_id: response.result_id,\n  total_distance: response.summary.total_distance,\n  num_vehicles_used: response.summary.num_vehicles_used,\n  clients_served: response.summary.clients_served,\n  service_rate: response.summary.service_rate,\n  recommendations: response.recommendations,\n  improvement: response.comparison.improvement_percentage,\n  timestamp: new Date().toISOString(),\n  full_metrics: response.metrics\n};\n\nreturn {\n  json: metrics\n};"
+      },
+      "name": "Extraire Métriques",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://localhost:5000/visualizations/{{$json.result_id}}/routes",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "routes_image"
+            }
+          }
+        }
+      },
+      "name": "Télécharger Routes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1050, 200]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://localhost:5000/visualizations/{{$json.result_id}}/comparison",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "comparison_image"
+            }
+          }
+        }
+      },
+      "name": "Télécharger Comparaison",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://localhost:5000/visualizations/{{$json.result_id}}/timeline",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "timeline_image"
+            }
+          }
+        }
+      },
+      "name": "Télécharger Timeline",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1050, 400]
+    },
+    {
+      "parameters": {
+        "functionCode": "const metrics = $input.first().json;\n\nconst html = `\n<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"UTF-8\">\n  <title>Rapport VRP - ${metrics.result_id}</title>\n  <style>\n    body { \n      font-family: 'Segoe UI', Arial, sans-serif; \n      margin: 0;\n      padding: 40px; \n      background: #f5f7fa;\n    }\n    .container {\n      max-width: 1200px;\n      margin: 0 auto;\n      background: white;\n      padding: 40px;\n      border-radius: 10px;\n      box-shadow: 0 2px 10px rgba(0,0,0,0.1);\n    }\n    h1 { \n      color: #2c3e50; \n      border-bottom: 3px solid #3498db;\n      padding-bottom: 15px;\n    }\n    h2 {\n      color: #34495e;\n      margin-top: 30px;\n    }\n    .header-info {\n      background: #ecf0f1;\n      padding: 15px;\n      border-radius: 5px;\n      margin: 20px 0;\n    }\n    .metrics-grid {\n      display: grid;\n      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));\n      gap: 20px;\n      margin: 20px 0;\n    }\n    .metric { \n      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\n      color: white;\n      padding: 20px; \n      border-radius: 8px;\n      box-shadow: 0 4px 6px rgba(0,0,0,0.1);\n    }\n    .metric-label {\n      font-size: 14px;\n      opacity: 0.9;\n      margin-bottom: 5px;\n    }\n    .metric-value { \n      font-size: 32px; \n      font-weight: bold;\n    }\n    .recommendation { \n      background: #fff3cd; \n      padding: 15px; \n      margin: 10px 0; \n      border-left: 4px solid #ffc107;\n      border-radius: 4px;\n    }\n    .success { background: #d4edda; border-left-color: #28a745; }\n    .warning { background: #fff3cd; border-left-color: #ffc107; }\n    .info { background: #d1ecf1; border-left-color: #17a2b8; }\n    .footer {\n      margin-top: 40px;\n      padding-top: 20px;\n      border-top: 1px solid #dee2e6;\n      text-align: center;\n      color: #6c757d;\n    }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <h1>🚛 Rapport d'Optimisation VRP</h1>\n    \n    <div class=\"header-info\">\n      <p><strong>📅 Date :</strong> ${new Date(metrics.timestamp).toLocaleString('fr-FR')}</p>\n      <p><strong>🆔 ID Résultat :</strong> <code>${metrics.result_id}</code></p>\n    </div>\n    \n    <h2>📊 Métriques Principales</h2>\n    <div class=\"metrics-grid\">\n      <div class=\"metric\">\n        <div class=\"metric-label\">Distance Totale</div>\n        <div class=\"metric-value\">${metrics.total_distance.toFixed(2)}</div>\n        <div class=\"metric-label\">unités</div>\n      </div>\n      \n      <div class=\"metric\">\n        <div class=\"metric-label\">Véhicules Utilisés</div>\n        <div class=\"metric-value\">${metrics.num_vehicles_used}</div>\n        <div class=\"metric-label\">véhicules</div>\n      </div>\n      \n      <div class=\"metric\">\n        <div class=\"metric-label\">Clients Servis</div>\n        <div class=\"metric-value\">${metrics.clients_served}</div>\n        <div class=\"metric-label\">${metrics.service_rate.toFixed(1)}% de taux</div>\n      </div>\n      \n      <div class=\"metric\">\n        <div class=\"metric-label\">Amélioration</div>\n        <div class=\"metric-value\">${metrics.improvement.toFixed(1)}%</div>\n        <div class=\"metric-label\">vs non-optimisé</div>\n      </div>\n    </div>\n    \n    <h2>💡 Recommandations</h2>\n    ${metrics.recommendations.map(r => {\n      let className = 'recommendation';\n      if (r.includes('✅')) className += ' success';\n      else if (r.includes('⚠️')) className += ' warning';\n      else if (r.includes('💡')) className += ' info';\n      return `<div class=\"${className}\">${r}</div>`;\n    }).join('')}\n    \n    <h2>📈 Visualisations</h2>\n    <p>Les visualisations graphiques sont disponibles en pièces jointes de cet email :</p>\n    <ul>\n      <li><strong>Routes :</strong> Carte des tournées optimisées</li>\n      <li><strong>Comparaison :</strong> Distances et charges par véhicule</li>\n      <li><strong>Timeline :</strong> Chronologie des livraisons</li>\n    </ul>\n    \n    <div class=\"footer\">\n      <p>Rapport généré automatiquement par le système VRP</p>\n      <p>Pour plus d'informations, consultez l'API : http://localhost:5000/results/${metrics.result_id}</p>\n    </div>\n  </div>\n</body>\n</html>\n`;\n\nreturn {\n  json: {\n    html: html,\n    metrics: metrics\n  }\n};"
+      },
+      "name": "Créer Rapport HTML",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "vrp-system@company.com",
+        "toEmail": "logistics@company.com",
+        "subject": "=📊 Rapport VRP - {{$json.metrics.result_id}}",
+        "emailFormat": "html",
+        "html": "={{$json.html}}",
+        "options": {
+          "attachments": "routes_image,comparison_image,timeline_image"
+        }
+      },
+      "name": "Envoyer Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [1450, 300],
+      "credentials": {
+        "smtp": {
+          "id": "1",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "channel": "#logistics",
+        "text": "=🚛 *Nouvelle optimisation VRP terminée!*\n\n*🆔 ID:* `{{$json.metrics.result_id}}`\n*📏 Distance totale:* {{$json.metrics.total_distance.toFixed(2)}} unités\n*🚛 Véhicules utilisés:* {{$json.metrics.num_vehicles_used}}\n*📊 Taux de service:* {{$json.metrics.service_rate.toFixed(1)}}%\n*📈 Amélioration:* {{$json.metrics.improvement.toFixed(1)}}%\n\nConsultez le rapport par email pour plus de détails.",
+        "attachments": [],
+        "otherOptions": {}
+      },
+      "name": "Notifier Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [1450, 450],
+      "credentials": {
+        "slackApi": {
+          "id": "2",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "path": "vrp-optimize",
+        "method": "POST",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 450],
+      "webhookId": "vrp-webhook-001"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({\n  success: true,\n  message: 'Optimisation VRP démarrée',\n  result_id: $json.metrics.result_id,\n  timestamp: $json.metrics.timestamp\n}) }}"
+      },
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1650, 450]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Préparer Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Préparer Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Préparer Configuration": {
+      "main": [
+        [
+          {
+            "node": "Appel API Optimisation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Appel API Optimisation": {
+      "main": [
+        [
+          {
+            "node": "Extraire Métriques",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraire Métriques": {
+      "main": [
+        [
+          {
+            "node": "Télécharger Routes",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Télécharger Comparaison",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Télécharger Timeline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Télécharger Routes": {
+      "main": [
+        [
+          {
+            "node": "Créer Rapport HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Télécharger Comparaison": {
+      "main": [
+        [
+          {
+            "node": "Créer Rapport HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Télécharger Timeline": {
+      "main": [
+        [
+          {
+            "node": "Créer Rapport HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Créer Rapport HTML": {
+      "main": [
+        [
+          {
+            "node": "Envoyer Email",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Notifier Slack",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "1",
+  "id": "vrp-optimization-workflow",
+  "meta": {
+    "instanceId": "vrp-instance-001"
+  },
+  "tags": [
+    {
+      "name": "VRP",
+      "id": "1"
+    },
+    {
+      "name": "Optimization",
+      "id": "2"
+    },
+    {
+      "name": "Logistics",
+      "id": "3"
+    }
+  ]
+}

@@ -164,7 +164,9 @@ def display_help():
 def start_api_server():
     """Démarre le serveur API Flask."""
     from api_server import run_server
-    run_server(host='0.0.0.0', port=5000, debug=True)
+    # Note: debug=False par défaut pour la sécurité
+    # Pour le développement, modifiez debug=True si nécessaire
+    run_server(host='0.0.0.0', port=5000, debug=False)
 
 
 if __name__ == '__main__':

@@ -309,7 +309,7 @@ def get_default_config():
     })
 
 
-def run_server(host='0.0.0.0', port=5000, debug=True):
+def run_server(host='0.0.0.0', port=5000, debug=False):
     """
     Lance le serveur Flask.
     
@@ -339,4 +339,6 @@ def run_server(host='0.0.0.0', port=5000, debug=True):
 
 
 if __name__ == '__main__':
-    run_server()
+    # Note: debug=False par défaut pour la sécurité en production
+    # Pour le développement local, vous pouvez passer debug=True
+    run_server(debug=False)

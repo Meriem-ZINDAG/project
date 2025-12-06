@@ -45,15 +45,15 @@ class VRPAnalyzer:
         
         # Distance moyenne par véhicule
         distances = [stats['distance'] for stats in self.solution['vehicle_stats']]
-        self.metrics['avg_distance_per_vehicle'] = np.mean(distances)
-        self.metrics['max_distance'] = max(distances)
-        self.metrics['min_distance'] = min(distances)
+        self.metrics['avg_distance_per_vehicle'] = np.mean(distances) if distances else 0
+        self.metrics['max_distance'] = max(distances) if distances else 0
+        self.metrics['min_distance'] = min(distances) if distances else 0
         
         # Charge moyenne par véhicule
         loads = [stats['load'] for stats in self.solution['vehicle_stats']]
-        self.metrics['avg_load_per_vehicle'] = np.mean(loads)
-        self.metrics['max_load'] = max(loads)
-        self.metrics['min_load'] = min(loads)
+        self.metrics['avg_load_per_vehicle'] = np.mean(loads) if loads else 0
+        self.metrics['max_load'] = max(loads) if loads else 0
+        self.metrics['min_load'] = min(loads) if loads else 0
         
         # Taux d'utilisation moyen
         capacity_used = [stats['capacity_used'] for stats in self.solution['vehicle_stats']]
@@ -136,6 +136,15 @@ class VRPAnalyzer:
         Returns:
             Dictionnaire avec les informations du véhicule le plus chargé
         """
+        if not self.solution['vehicle_stats']:
+            return {
+                'vehicle_id': 0,
+                'distance': 0,
+                'load': 0,
+                'capacity_used': 0,
+                'num_clients': 0
+            }
+        
         busiest = max(self.solution['vehicle_stats'], 
                      key=lambda x: (x['load'], x['distance']))
         

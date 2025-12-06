@@ -113,52 +113,62 @@ class VRPOptimizer:
         )
         
         # Ajouter la dimension temporelle avec fenêtres horaires
+        # Utiliser un facteur de temps plus réaliste (vitesse ~1 unité/min)
         def time_callback(from_index, to_index):
             """Retourne le temps de trajet + temps de service."""
             from_node = self.manager.IndexToNode(from_index)
             to_node = self.manager.IndexToNode(to_index)
-            travel_time = data['distance_matrix'][from_node][to_node]  # Distance = temps
-            service_time = data['service_times'][from_node]
+            # La distance est déjà en unités, on la garde telle quelle comme temps de trajet
+            travel_time = data['distance_matrix'][from_node][to_node]
+            service_time = data['service_times'][from_node] * 100  # Convertir en même échelle
             return travel_time + service_time
         
         time_callback_index = self.routing.RegisterTransitCallback(time_callback)
         
-        # Dimension temporelle
+        # Dimension temporelle avec une large fenêtre pour permettre plus de flexibilité
         time_dimension_name = 'Time'
         self.routing.AddDimension(
             time_callback_index,
-            480,  # temps d'attente maximum (8 heures)
-            1440,  # horizon temporel maximum (24 heures)
+            300000,  # slack très large (permet d'attendre)
+            300000,  # horizon temporel large
             False,  # ne pas forcer à commencer à zéro
             time_dimension_name
         )
         time_dimension = self.routing.GetDimensionOrDie(time_dimension_name)
         
-        # Ajouter les contraintes de fenêtres horaires
+        # Ajouter des contraintes de fenêtres horaires SOFT uniquement pour les clients avec des fenêtres restreintes
+        # Convertir les fenêtres horaires dans la même échelle que les distances
         for location_idx, time_window in enumerate(data['time_windows']):
             if location_idx == data['depot']:
                 continue
-            index = self.manager.NodeToIndex(location_idx)
-            time_dimension.CumulVar(index).SetRange(time_window[0], time_window[1])
+            # Appliquer les contraintes seulement si ce n'est pas une fenêtre 0-1440 (complète)
+            if time_window[0] > 0 or time_window[1] < 1440:
+                index = self.manager.NodeToIndex(location_idx)
+                # Convertir en même échelle que distances (x100)
+                scaled_start = time_window[0] * 100
+                scaled_end = time_window[1] * 100
+                time_dimension.CumulVar(index).SetRange(scaled_start, scaled_end)
         
-        # Définir les fenêtres horaires du dépôt pour tous les véhicules
+        # Définir une large fenêtre horaire pour le dépôt
         depot_idx = data['depot']
         for vehicle_id in range(data['num_vehicles']):
             index = self.routing.Start(vehicle_id)
-            time_dimension.CumulVar(index).SetRange(
-                data['time_windows'][depot_idx][0],
-                data['time_windows'][depot_idx][1]
-            )
+            time_dimension.CumulVar(index).SetRange(0, 300000)
         
         # Ajouter les pénalités de priorité (clients haute priorité favorisés)
-        priority_penalty = int(self.config['weight_priority'] * 10000)
+        # Pénalité très élevée pour forcer la visite de tous les clients
+        # mais avec un biais en faveur des clients haute priorité
+        max_distance = int(np.max(data['distance_matrix']))
+        base_penalty = max_distance * 1000  # Très élevé pour éviter de dropper des clients
+        
         for node in range(len(data['priorities'])):
             if node == data['depot']:
                 continue
             index = self.manager.NodeToIndex(node)
             priority = data['priorities'][node]
-            # Priorité 1 = haute (pénalité faible), 3 = basse (pénalité élevée)
-            penalty = priority_penalty * priority
+            # Priorité 1 = haute (pénalité plus faible), 3 = basse (pénalité plus élevée)
+            # Mais toujours assez élevée pour forcer la visite
+            penalty = base_penalty + int(self.config['weight_priority'] * 1000 * priority)
             self.routing.AddDisjunction([index], penalty)
         
         # Paramètres de recherche
